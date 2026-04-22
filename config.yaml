@@ -1,0 +1,147 @@
+# ============================================================
+# Hybrid Ensemble Deepfake Detector — Central Configuration
+# FYP, Hazara University, Mansehra
+# ============================================================
+
+project:
+  name: "Hybrid Ensemble Deepfake Detector"
+  version: "1.0.0"
+  seed: 42
+
+# ----------------------------------------------------------
+# Paths
+# ----------------------------------------------------------
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  frames: "data/processed/frames"
+  faces: "data/processed/faces"
+  audio: "data/processed/audio"
+  models: "models"
+  logs: "logs"
+  uploads: "uploads"   # runtime upload dir (not committed)
+
+# ----------------------------------------------------------
+# Datasets
+# ----------------------------------------------------------
+datasets:
+  celeb_df:
+    root: "data/raw/celeb-df"
+    split: [0.7, 0.15, 0.15]   # train/val/test
+  faceforensics:
+    root: "data/raw/faceforensics"
+    compression: "c23"          # c0 / c23 / c40
+    split: [0.7, 0.15, 0.15]
+  dfdc:
+    root: "data/raw/dfdc"
+    split: [0.7, 0.15, 0.15]
+
+# ----------------------------------------------------------
+# Preprocessing
+# ----------------------------------------------------------
+preprocessing:
+  frame_interval: 10            # extract every Nth frame
+  face_margin: 0.3              # margin around detected face (fraction)
+  face_size: 224                # resize face crop to NxN
+  min_face_confidence: 0.9      # MTCNN minimum detection confidence
+  audio_sample_rate: 16000
+  n_mfcc: 40
+  n_fft: 512
+  hop_length: 160
+
+# ----------------------------------------------------------
+# Models
+# ----------------------------------------------------------
+models:
+  xceptionnet:
+    pretrained: true
+    num_classes: 2
+    dropout: 0.5
+    save_path: "models/xception/best.pth"
+
+  efficientnet:
+    variant: "efficientnet_b0"
+    pretrained: true
+    num_classes: 2
+    dropout: 0.4
+    save_path: "models/efficientnet/best.pth"
+
+  vit:
+    variant: "vit_base_patch16_224"
+    pretrained: true
+    num_classes: 2
+    dropout: 0.1
+    save_path: "models/vit/best.pth"
+
+  audio_classifier:
+    input_channels: 1
+    num_classes: 2
+    save_path: "models/audio/best.pth"
+
+# ----------------------------------------------------------
+# Ensemble
+# ----------------------------------------------------------
+ensemble:
+  strategy: "weighted_average"   # "weighted_average" | "stacking" | "majority_vote"
+  weights:
+    xceptionnet: 0.35
+    efficientnet: 0.30
+    vit: 0.25
+    audio: 0.10
+  threshold: 0.5                 # probability threshold for FAKE verdict
+  save_path: "models/ensemble/config.yaml"
+
+# ----------------------------------------------------------
+# Training
+# ----------------------------------------------------------
+training:
+  batch_size: 32
+  num_epochs: 30
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  scheduler: "cosine"            # "cosine" | "step" | "plateau"
+  early_stopping_patience: 5
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true          # fp16 via torch.cuda.amp
+  device: "cuda"                 # "cuda" | "cpu"
+
+# ----------------------------------------------------------
+# Augmentation
+# ----------------------------------------------------------
+augmentation:
+  train:
+    horizontal_flip: 0.5
+    rotation_limit: 10
+    brightness_contrast: 0.2
+    gaussian_noise: 0.1
+  val:
+    # no augmentation at val/test
+    normalize: true
+
+# ----------------------------------------------------------
+# Evaluation
+# ----------------------------------------------------------
+evaluation:
+  metrics: ["accuracy", "precision", "recall", "f1", "auc_roc"]
+  gradcam_layer: "layer4"        # target layer for Grad-CAM heatmaps
+
+# ----------------------------------------------------------
+# API
+# ----------------------------------------------------------
+api:
+  host: "0.0.0.0"
+  port: 8000
+  max_upload_size_mb: 100
+  allowed_extensions: ["mp4", "avi", "mov", "jpg", "jpeg", "png"]
+  delete_after_inference: true   # privacy: auto-delete uploads
+  cors_origins: ["http://localhost:3000", "http://127.0.0.1:5500"]
+
+# ----------------------------------------------------------
+# Logging
+# ----------------------------------------------------------
+logging:
+  level: "INFO"
+  file: "logs/app.log"
+  max_bytes: 10485760            # 10 MB
+  backup_count: 3
