@@ -36,3 +36,7 @@ logs/
 # Uploads (runtime)
 uploads/
 temp/
+
+# Credentials — NEVER commit
+kaggle.json
+*.json.secret
