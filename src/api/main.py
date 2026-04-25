@@ -5,8 +5,10 @@ FastAPI application for deepfake detection.
 import sys
 import os
 import shutil
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 from pathlib import Path
 import uuid
@@ -21,6 +23,9 @@ from src.utils.video_utils import extract_frames
 # --- App Initialization ---
 app = FastAPI(title="Deepfake Detector API")
 cfg = load_config()
+
+# --- Mount static files and templates ---
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
 # CORS
 app.add_middleware(
@@ -43,9 +48,10 @@ def load_predictor():
 
 # --- API Endpoints ---
 
-@app.get("/")
-def read_root():
-    return {"message": "Deepfake Detector API is running."}
+@app.get("/", response_class=HTMLResponse)
+async def read_item(request: Request):
+    return FileResponse('frontend/templates/index.html')
+
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
