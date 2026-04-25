@@ -5,6 +5,16 @@ Functions for calculating performance metrics.
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
+def accuracy(y_true, y_pred):
+    """
+    Calculates accuracy for the training loop.
+    y_pred is expected to be logits.
+    """
+    y_pred_tags = torch.round(torch.sigmoid(y_pred))
+    correct_pred = (y_pred_tags == y_true).float()
+    acc = correct_pred.sum() / len(correct_pred)
+    return acc * 100
+
 def get_all_metrics(y_true, y_pred_probs):
     """
     Calculates all classification metrics.
